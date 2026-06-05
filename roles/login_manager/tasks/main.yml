@@ -50,7 +50,17 @@
     mode: "0755"
     content: |
       #!/usr/bin/env bash
-      set -euo pipefail
+      set -u
+
+      LOG_FILE="/tmp/start-hyprland.log"
+      {
+        echo "===== start-hyprland $(date -Is) ====="
+        echo "USER=${USER:-unknown}"
+        echo "HOME=${HOME:-unknown}"
+        echo "PATH=${PATH:-unknown}"
+        echo "Hyprland binary: $(command -v Hyprland || echo missing)"
+        echo "dbus-run-session binary: $(command -v dbus-run-session || echo missing)"
+      } >> "$LOG_FILE" 2>&1
 
       export XDG_SESSION_TYPE=wayland
       export XDG_CURRENT_DESKTOP=Hyprland
@@ -60,7 +70,7 @@
       export SDL_VIDEODRIVER=wayland
       export CLUTTER_BACKEND=wayland
 
-      exec dbus-run-session Hyprland
+      exec dbus-run-session Hyprland >> "$LOG_FILE" 2>&1
   when:
     - enable_login_manager | bool
     - login_manager == "sddm"
@@ -76,7 +86,7 @@
       [Desktop Entry]
       Name=Hyprland
       Comment=An intelligent dynamic tiling Wayland compositor
-      Exec=start-hyprland
+      Exec=/usr/local/bin/start-hyprland
       Type=Application
       DesktopNames=Hyprland
   when:
