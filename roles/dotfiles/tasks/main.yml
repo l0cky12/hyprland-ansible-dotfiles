@@ -1,0 +1,150 @@
+---
+- name: Verify target user exists
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ target_user }}"
+
+- name: Ensure dotfiles parent directory exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ dotfiles_dest | dirname }}"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0755"
+
+- name: Clone or update dotfiles repository
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.git:
+    repo: "{{ dotfiles_repo }}"
+    dest: "{{ dotfiles_dest }}"
+    version: main
+    update: true
+    accept_hostkey: true
+
+- name: Check that requested Stow package directories exist
+  ansible.builtin.stat:
+    path: "{{ dotfiles_dest }}/{{ item }}"
+  loop: "{{ stow_packages }}"
+  register: stow_package_dirs
+
+- name: Fail if any configured Stow package directory is missing
+  ansible.builtin.fail:
+    msg: "Stow package directory missing: {{ dotfiles_dest }}/{{ item.item }}"
+  loop: "{{ stow_package_dirs.results }}"
+  when: not item.stat.exists
+
+- name: Dry-run Stow to detect conflicts
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.command:
+    cmd: "stow --simulate --verbose --target={{ target_home }} {{ item }}"
+    chdir: "{{ dotfiles_dest }}"
+  loop: "{{ stow_packages }}"
+  register: stow_dry_run
+  changed_when: false
+  failed_when: false
+
+- name: Show Stow dry-run output
+  ansible.builtin.debug:
+    msg: |
+      Stow package: {{ item.item }}
+      Return code: {{ item.rc }}
+      STDOUT:
+      {{ item.stdout }}
+      STDERR:
+      {{ item.stderr }}
+  loop: "{{ stow_dry_run.results }}"
+  when: item.stdout | length > 0 or item.stderr | length > 0
+
+- name: Find files inside each Stow package
+  ansible.builtin.find:
+    paths: "{{ dotfiles_dest }}/{{ item }}"
+    file_type: any
+    hidden: true
+    recurse: true
+  loop: "{{ stow_packages }}"
+  register: stow_package_files
+
+- name: Build list of expected target paths
+  ansible.builtin.set_fact:
+    expected_stow_targets: "{{ expected_stow_targets | default([]) + package_targets }}"
+  vars:
+    package_name: "{{ item.item }}"
+    package_root: "{{ dotfiles_dest }}/{{ package_name }}"
+    package_targets: >-
+      {{
+        item.files
+        | map(attribute='path')
+        | map('regex_replace', '^' ~ package_root ~ '/', target_home ~ '/')
+        | list
+      }}
+  loop: "{{ stow_package_files.results }}"
+
+- name: Check expected target paths in home directory
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ expected_stow_targets | default([]) }}"
+  register: target_path_stats
+
+- name: Build list of conflicting existing files
+  ansible.builtin.set_fact:
+    existing_conflicts: >-
+      {{
+        target_path_stats.results
+        | selectattr('stat.exists', 'equalto', true)
+        | rejectattr('stat.islnk', 'equalto', true)
+        | map(attribute='item')
+        | list
+      }}
+
+- name: Show conflicting files that will be backed up
+  ansible.builtin.debug:
+    var: existing_conflicts
+  when: existing_conflicts | length > 0
+
+- name: Create backup directory if conflicts exist
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.file:
+    path: "{{ dotfiles_backup_root }}"
+    state: directory
+    mode: "0755"
+  when: existing_conflicts | length > 0
+
+- name: Ensure backup parent directories exist for conflicts
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.file:
+    path: "{{ dotfiles_backup_root }}/{{ item | regex_replace('^' ~ target_home ~ '/', '') | dirname }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ existing_conflicts }}"
+  when: existing_conflicts | length > 0
+
+- name: Back up conflicting files before Stow
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.command:
+    argv:
+      - mv
+      - "{{ item }}"
+      - "{{ dotfiles_backup_root }}/{{ item | regex_replace('^' ~ target_home ~ '/', '') }}"
+  loop: "{{ existing_conflicts }}"
+  when: existing_conflicts | length > 0
+
+- name: Run GNU Stow for configured packages
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.command:
+    cmd: "stow --restow --target={{ target_home }} {{ item }}"
+    chdir: "{{ dotfiles_dest }}"
+  loop: "{{ stow_packages }}"
+  register: stow_result
+  changed_when: true
+
+- name: Show Stow result
+  ansible.builtin.debug:
+    msg: "Stowed package {{ item.item }}"
+  loop: "{{ stow_result.results }}"

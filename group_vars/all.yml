@@ -1,0 +1,48 @@
+---
+# Target Linux user that owns the desktop session and dotfiles.
+target_user: "liam"
+target_home: "/home/{{ target_user }}"
+
+# Existing Hyprland dotfiles repository.
+dotfiles_repo: "https://github.com/fhlkfds/dotfiles.git"
+dotfiles_dest: "{{ target_home }}/dotfiles"
+
+# Package list file. This file lives next to site.yml.
+pacman_package_file: "pacpkg.txt"
+
+# Preferred AUR helper.
+aur_helper: "yay"
+install_aur_helper_if_missing: true
+
+# Packages required to build yay and AUR packages.
+aur_build_dependencies:
+  - base-devel
+  - git
+
+# Core packages required by this playbook.
+required_system_packages:
+  - git
+  - stow
+  - sudo
+
+# Extra AUR packages to install with yay.
+# Add AUR-only packages here.
+extra_aur_packages: []
+  # - visual-studio-code-bin
+  # - google-chrome
+
+# Stow package directories inside https://github.com/fhlkfds/dotfiles.
+# Recommended: start with a smaller list first, then add more after verifying.
+stow_packages:
+  - fastfetch
+  - hypr
+  - hyprlock
+  - noctalia
+  - rofi
+  - swaync
+  - waybar
+  - wofi
+  - zsh
+
+# Backup location for existing conflicting dotfiles.
+dotfiles_backup_root: "{{ target_home }}/.dotfiles-backup-{{ ansible_date_time.iso8601_basic_short }}"

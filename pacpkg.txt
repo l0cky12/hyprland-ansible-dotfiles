@@ -1,0 +1,50 @@
+# Required base tools
+git
+stow
+base-devel
+sudo
+
+# Hyprland desktop
+hyprland
+xdg-desktop-portal-hyprland
+waybar
+wofi
+mako
+swaybg
+grim
+slurp
+wl-clipboard
+hyprlock
+
+# Terminal and shell
+kitty
+zsh
+starship
+fastfetch
+
+# Audio
+pipewire
+pipewire-pulse
+wireplumber
+pavucontrol
+
+# Networking
+networkmanager
+bluez
+bluez-utils
+
+# Fonts
+ttf-dejavu
+ttf-liberation
+noto-fonts
+noto-fonts-emoji
+
+# Useful desktop tools
+thunar
+firefox
+brightnessctl
+playerctl
+
+# Add AUR packages either here or in group_vars/all.yml extra_aur_packages.
+# Example:
+# visual-studio-code-bin

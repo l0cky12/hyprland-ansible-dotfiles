@@ -1,0 +1,173 @@
+---
+- name: Verify system is Arch Linux
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == "Archlinux"
+    fail_msg: "This playbook is intended for Arch Linux only."
+    success_msg: "Arch Linux detected."
+
+- name: Verify pacpkg.txt exists
+  ansible.builtin.stat:
+    path: "{{ playbook_dir }}/{{ pacman_package_file }}"
+  register: pacpkg_file
+
+- name: Fail if pacpkg.txt is missing
+  ansible.builtin.fail:
+    msg: "Package list file not found: {{ playbook_dir }}/{{ pacman_package_file }}"
+  when: not pacpkg_file.stat.exists
+
+- name: Read pacpkg.txt
+  ansible.builtin.slurp:
+    src: "{{ playbook_dir }}/{{ pacman_package_file }}"
+  register: pacpkg_raw
+
+- name: Parse pacpkg.txt and ignore comments/blank lines
+  ansible.builtin.set_fact:
+    requested_packages: >-
+      {{
+        pacpkg_raw.content
+        | b64decode
+        | splitlines()
+        | map('regex_replace', '#.*$', '')
+        | map('trim')
+        | reject('equalto', '')
+        | list
+      }}
+
+- name: Show parsed package count
+  ansible.builtin.debug:
+    msg: "Found {{ requested_packages | length }} packages in {{ pacman_package_file }}."
+
+- name: Update pacman database
+  become: true
+  community.general.pacman:
+    update_cache: true
+
+- name: Install required system packages
+  become: true
+  community.general.pacman:
+    name: "{{ required_system_packages }}"
+    state: present
+
+- name: Check which requested packages are available in official Arch repos
+  ansible.builtin.command:
+    cmd: "pacman -Si {{ item }}"
+  loop: "{{ requested_packages }}"
+  register: pacman_repo_check
+  changed_when: false
+  failed_when: false
+
+- name: Build official package list
+  ansible.builtin.set_fact:
+    official_packages: "{{ pacman_repo_check.results | selectattr('rc', 'equalto', 0) | map(attribute='item') | list }}"
+
+- name: Build AUR candidate package list from pacpkg.txt
+  ansible.builtin.set_fact:
+    aur_packages_from_pacpkg: "{{ pacman_repo_check.results | rejectattr('rc', 'equalto', 0) | map(attribute='item') | list }}"
+
+- name: Combine AUR package lists
+  ansible.builtin.set_fact:
+    aur_packages: "{{ ((aur_packages_from_pacpkg | default([])) + (extra_aur_packages | default([]))) | unique | list }}"
+
+- name: Remove AUR helper from AUR package install list if present
+  ansible.builtin.set_fact:
+    aur_packages: "{{ aur_packages | reject('equalto', aur_helper) | list }}"
+
+- name: Show official packages
+  ansible.builtin.debug:
+    var: official_packages
+
+- name: Show AUR packages
+  ansible.builtin.debug:
+    var: aur_packages
+
+- name: Install official Arch packages from pacpkg.txt
+  become: true
+  community.general.pacman:
+    name: "{{ official_packages }}"
+    state: present
+  when: official_packages | length > 0
+
+- name: Check whether AUR helper is installed
+  ansible.builtin.command:
+    cmd: "command -v {{ aur_helper }}"
+  register: aur_helper_check
+  changed_when: false
+  failed_when: false
+
+- name: Install AUR build dependencies before building yay
+  become: true
+  community.general.pacman:
+    name: "{{ aur_build_dependencies }}"
+    state: present
+  when:
+    - aur_packages | length > 0
+    - install_aur_helper_if_missing | bool
+    - aur_helper_check.rc != 0
+
+- name: Ensure yay build cache parent exists
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.file:
+    path: "{{ target_home }}/.cache"
+    state: directory
+    mode: "0755"
+  when:
+    - aur_helper == "yay"
+    - aur_packages | length > 0
+    - install_aur_helper_if_missing | bool
+    - aur_helper_check.rc != 0
+
+- name: Clone yay AUR repo if yay is missing
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.git:
+    repo: "https://aur.archlinux.org/yay.git"
+    dest: "{{ target_home }}/.cache/yay-build"
+    version: master
+    update: true
+  when:
+    - aur_helper == "yay"
+    - aur_packages | length > 0
+    - install_aur_helper_if_missing | bool
+    - aur_helper_check.rc != 0
+
+- name: Build and install yay before AUR packages
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.command:
+    cmd: "makepkg -si --noconfirm"
+    chdir: "{{ target_home }}/.cache/yay-build"
+    creates: "/usr/bin/yay"
+  when:
+    - aur_helper == "yay"
+    - aur_packages | length > 0
+    - install_aur_helper_if_missing | bool
+    - aur_helper_check.rc != 0
+
+- name: Re-check whether AUR helper is installed
+  ansible.builtin.command:
+    cmd: "command -v {{ aur_helper }}"
+  register: aur_helper_check_after
+  changed_when: false
+  failed_when: false
+  when: aur_packages | length > 0
+
+- name: Fail if AUR packages exist but AUR helper is unavailable
+  ansible.builtin.fail:
+    msg: >-
+      AUR packages were detected, but {{ aur_helper }} is not installed.
+      Install {{ aur_helper }} manually or set install_aur_helper_if_missing: true.
+      AUR packages: {{ aur_packages }}
+  when:
+    - aur_packages | length > 0
+    - aur_helper_check_after.rc != 0
+
+- name: Install AUR packages with yay
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.command:
+    cmd: "{{ aur_helper }} -S --needed --noconfirm {{ aur_packages | join(' ') }}"
+  register: aur_install_result
+  changed_when: "'there is nothing to do' not in (aur_install_result.stdout | lower)"
+  when: aur_packages | length > 0
