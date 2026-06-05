@@ -10,7 +10,7 @@ This Ansible project installs an Arch Linux Hyprland desktop package set, suppor
 - Installs official Arch packages using `pacman`
 - Detects packages unavailable in official repos and treats them as AUR candidates
 - Installs `yay` before installing AUR packages if needed
-- Installs `greetd` + `greetd-tuigreet-git` for a minimal Hyprland login manager
+- Installs SDDM for a graphical Hyprland login manager
 - Installs GNU Stow
 - Clones or updates the dotfiles repo
 - Checks for existing file conflicts before running Stow
@@ -69,11 +69,11 @@ dotfiles_repo: "https://github.com/fhlkfds/dotfiles.git"
 dotfiles_dest: "{{ target_home }}/dotfiles"
 pacman_package_file: "pacpkg.txt"
 aur_helper: "yay"
-extra_aur_packages:
-  - greetd-tuigreet-git
+extra_aur_packages: []
 enable_login_manager: true
+login_manager: "sddm"
 login_manager_packages:
-  - greetd
+  - sddm
 stow_packages:
   - fastfetch
   - hypr
@@ -165,7 +165,7 @@ Add `zsh` last because it can affect your shell startup.
 ## Warnings
 
 - This playbook does not validate that the Hyprland config works on your GPU.
-- This playbook does not enable a display manager.
+- This playbook enables SDDM, but you may need to choose Hyprland from the SDDM session selector on first login.
 - NVIDIA, AMD, and Intel setups require different driver packages.
 - AUR packages are not official Arch packages. Review PKGBUILDs if security matters.
 - Do not run Stow as root. This playbook intentionally runs Stow as the target user.

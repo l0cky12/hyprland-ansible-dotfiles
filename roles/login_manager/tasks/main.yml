@@ -1,48 +1,70 @@
 ---
-- name: Install greetd display manager
+- name: Install SDDM login manager
   become: true
   community.general.pacman:
     name: "{{ login_manager_packages }}"
     state: present
-  when: enable_login_manager | bool
+  when:
+    - enable_login_manager | bool
+    - login_manager == "sddm"
 
-- name: Ensure greetd config directory exists
+- name: Ensure SDDM config directory exists
   become: true
   ansible.builtin.file:
-    path: /etc/greetd
+    path: /etc/sddm.conf.d
     state: directory
     owner: root
     group: root
     mode: "0755"
-  when: enable_login_manager | bool
+  when:
+    - enable_login_manager | bool
+    - login_manager == "sddm"
 
-- name: Configure greetd to launch tuigreet with Hyprland
+- name: Configure SDDM session behavior
   become: true
   ansible.builtin.copy:
-    dest: /etc/greetd/config.toml
+    dest: /etc/sddm.conf.d/10-hyprland.conf
     owner: root
     group: root
     mode: "0644"
     backup: true
     content: |
-      [terminal]
-      vt = 1
+      [General]
+      # Hyprland installs /usr/share/wayland-sessions/hyprland.desktop.
+      # SDDM will show Hyprland in the session selector.
+      # The last selected session is remembered by SDDM.
 
-      [default_session]
-      command = "tuigreet --time --remember --remember-user-session --sessions /usr/share/wayland-sessions --cmd Hyprland"
-      user = "greeter"
-  when: enable_login_manager | bool
+      [Theme]
+      Current=breeze
+  when:
+    - enable_login_manager | bool
+    - login_manager == "sddm"
 
-- name: Enable greetd service
+- name: Disable greetd if it was previously enabled
   become: true
   ansible.builtin.systemd:
     name: greetd.service
-    enabled: true
-  when: enable_login_manager | bool
+    enabled: false
+    state: stopped
+  failed_when: false
+  when:
+    - enable_login_manager | bool
+    - login_manager == "sddm"
 
-- name: Warn before starting greetd manually
+- name: Enable SDDM service
+  become: true
+  ansible.builtin.systemd:
+    name: sddm.service
+    enabled: true
+  when:
+    - enable_login_manager | bool
+    - login_manager == "sddm"
+
+- name: Warn before rebooting into SDDM
   ansible.builtin.debug:
     msg: >-
-      greetd is installed and enabled. Reboot to use the login manager.
-      Do not start greetd over your current graphical session unless you are at a TTY.
-  when: enable_login_manager | bool
+      SDDM is installed and enabled. Reboot to use the graphical login screen.
+      At the login screen, choose Hyprland from the session selector if it is not selected automatically.
+  when:
+    - enable_login_manager | bool
+    - login_manager == "sddm"
