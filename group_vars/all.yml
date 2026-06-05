@@ -27,7 +27,9 @@ required_system_packages:
 
 # Extra AUR packages to install with yay.
 # Add AUR-only packages here.
-extra_aur_packages: []
+extra_aur_packages:
+  # Minimal greetd text login screen for Hyprland.
+  - greetd-tuigreet-git
   # - visual-studio-code-bin
   # - google-chrome
 
@@ -46,3 +48,9 @@ stow_packages:
 
 # Backup location for existing conflicting dotfiles.
 dotfiles_backup_root: "{{ target_home }}/.dotfiles-backup-{{ ansible_date_time.iso8601_basic_short }}"
+
+# Minimal login manager for Hyprland.
+# greetd + tuigreet is lighter than SDDM/GDM and works well for Wayland.
+enable_login_manager: true
+login_manager_packages:
+  - greetd

@@ -7,3 +7,4 @@
   roles:
     - role: packages
     - role: dotfiles
+    - role: login_manager

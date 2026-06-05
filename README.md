@@ -10,6 +10,7 @@ This Ansible project installs an Arch Linux Hyprland desktop package set, suppor
 - Installs official Arch packages using `pacman`
 - Detects packages unavailable in official repos and treats them as AUR candidates
 - Installs `yay` before installing AUR packages if needed
+- Installs `greetd` + `greetd-tuigreet-git` for a minimal Hyprland login manager
 - Installs GNU Stow
 - Clones or updates the dotfiles repo
 - Checks for existing file conflicts before running Stow
@@ -28,7 +29,10 @@ hyprland-ansible-dotfiles/
 │   ├── packages/
 │   │   └── tasks/
 │   │       └── main.yml
-│   └── dotfiles/
+│   ├── dotfiles/
+│   │   └── tasks/
+│   │       └── main.yml
+│   └── login_manager/
 │       └── tasks/
 │           └── main.yml
 └── README.md
@@ -65,7 +69,11 @@ dotfiles_repo: "https://github.com/fhlkfds/dotfiles.git"
 dotfiles_dest: "{{ target_home }}/dotfiles"
 pacman_package_file: "pacpkg.txt"
 aur_helper: "yay"
-extra_aur_packages: []
+extra_aur_packages:
+  - greetd-tuigreet-git
+enable_login_manager: true
+login_manager_packages:
+  - greetd
 stow_packages:
   - fastfetch
   - hypr
