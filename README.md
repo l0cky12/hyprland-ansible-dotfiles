@@ -165,7 +165,7 @@ Add `zsh` last because it can affect your shell startup.
 ## Warnings
 
 - This playbook does not validate that the Hyprland config works on your GPU.
-- This playbook enables SDDM, but you may need to choose Hyprland from the SDDM session selector on first login.
+- This playbook enables SDDM and creates `/usr/share/wayland-sessions/hyprland.desktop` so Hyprland appears in the session selector.
 - NVIDIA, AMD, and Intel setups require different driver packages.
 - AUR packages are not official Arch packages. Review PKGBUILDs if security matters.
 - Do not run Stow as root. This playbook intentionally runs Stow as the target user.

@@ -20,6 +20,36 @@
     - enable_login_manager | bool
     - login_manager == "sddm"
 
+- name: Ensure Wayland session directory exists
+  become: true
+  ansible.builtin.file:
+    path: /usr/share/wayland-sessions
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when:
+    - enable_login_manager | bool
+    - login_manager == "sddm"
+
+- name: Create Hyprland Wayland session file for SDDM
+  become: true
+  ansible.builtin.copy:
+    dest: /usr/share/wayland-sessions/hyprland.desktop
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Desktop Entry]
+      Name=Hyprland
+      Comment=An intelligent dynamic tiling Wayland compositor
+      Exec=Hyprland
+      Type=Application
+      DesktopNames=Hyprland
+  when:
+    - enable_login_manager | bool
+    - login_manager == "sddm"
+
 - name: Configure SDDM session behavior
   become: true
   ansible.builtin.copy:
@@ -29,13 +59,14 @@
     mode: "0644"
     backup: true
     content: |
-      [General]
-      # Hyprland installs /usr/share/wayland-sessions/hyprland.desktop.
-      # SDDM will show Hyprland in the session selector.
-      # The last selected session is remembered by SDDM.
+      [Autologin]
+      Session=hyprland.desktop
 
-      [Theme]
-      Current=breeze
+      [General]
+      # Hyprland session file is managed at:
+      # /usr/share/wayland-sessions/hyprland.desktop
+      # SDDM should show Hyprland in the session selector.
+      # The last selected session is remembered by SDDM.
   when:
     - enable_login_manager | bool
     - login_manager == "sddm"
@@ -65,6 +96,7 @@
     msg: >-
       SDDM is installed and enabled. Reboot to use the graphical login screen.
       At the login screen, choose Hyprland from the session selector if it is not selected automatically.
+      If the session list is empty, verify /usr/share/wayland-sessions/hyprland.desktop exists.
   when:
     - enable_login_manager | bool
     - login_manager == "sddm"
