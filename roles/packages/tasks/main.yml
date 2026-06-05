@@ -25,14 +25,18 @@
   ansible.builtin.set_fact:
     requested_packages: >-
       {{
-        pacpkg_raw.content
-        | b64decode
-        | splitlines()
-        | map('regex_replace', '#.*$', '')
+        (pacpkg_raw.content | b64decode)
+        | regex_replace('\r', '')
+        | regex_findall('(?m)^\\s*([^#\\n][^#\\n]*?)\\s*(?:#.*)?$')
         | map('trim')
         | reject('equalto', '')
         | list
       }}
+
+- name: Remove inline comment-only leftovers from parsed package list
+  ansible.builtin.set_fact:
+    requested_packages: "{{ requested_packages | reject('match', '^\\s*#') | list }}"
+     
 
 - name: Show parsed package count
   ansible.builtin.debug:
