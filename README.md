@@ -74,6 +74,12 @@ enable_login_manager: true
 login_manager: "sddm"
 login_manager_packages:
   - sddm
+hyprland_session_packages:
+  - hyprland
+  - xdg-desktop-portal-hyprland
+  - xdg-desktop-portal
+  - qt5-wayland
+  - qt6-wayland
 stow_packages:
   - fastfetch
   - hypr

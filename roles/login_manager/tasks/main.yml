@@ -1,4 +1,13 @@
 ---
+- name: Install Hyprland session packages
+  become: true
+  community.general.pacman:
+    name: "{{ hyprland_session_packages }}"
+    state: present
+  when:
+    - enable_login_manager | bool
+    - login_manager == "sddm"
+
 - name: Install SDDM login manager
   become: true
   community.general.pacman:
