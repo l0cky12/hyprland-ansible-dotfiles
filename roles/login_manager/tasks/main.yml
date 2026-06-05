@@ -41,6 +41,30 @@
     - enable_login_manager | bool
     - login_manager == "sddm"
 
+- name: Create start-hyprland wrapper
+  become: true
+  ansible.builtin.copy:
+    dest: /usr/local/bin/start-hyprland
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      export XDG_SESSION_TYPE=wayland
+      export XDG_CURRENT_DESKTOP=Hyprland
+      export XDG_SESSION_DESKTOP=Hyprland
+      export GDK_BACKEND=wayland,x11
+      export QT_QPA_PLATFORM='wayland;xcb'
+      export SDL_VIDEODRIVER=wayland
+      export CLUTTER_BACKEND=wayland
+
+      exec dbus-run-session Hyprland
+  when:
+    - enable_login_manager | bool
+    - login_manager == "sddm"
+
 - name: Create Hyprland Wayland session file for SDDM
   become: true
   ansible.builtin.copy:
@@ -52,7 +76,7 @@
       [Desktop Entry]
       Name=Hyprland
       Comment=An intelligent dynamic tiling Wayland compositor
-      Exec=Hyprland
+      Exec=start-hyprland
       Type=Application
       DesktopNames=Hyprland
   when:
