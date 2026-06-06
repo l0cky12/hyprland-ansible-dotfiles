@@ -541,3 +541,5 @@ zsh-history-substring-search
 zsh-syntax-highlighting
 
 quickshell
+
+brave-bin
