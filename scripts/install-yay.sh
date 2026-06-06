@@ -44,10 +44,12 @@ fi
 echo "Building yay as $TARGET_USER..."
 runuser -u "$TARGET_USER" -- bash -lc "cd '$YAY_DIR' && makepkg -f --noconfirm"
 
-YAY_PKG="$(ls -t "$YAY_DIR"/yay-*.pkg.tar.zst 2>/dev/null | head -n 1 || true)"
+YAY_PKG="$(find "$YAY_DIR" -maxdepth 1 -type f -name 'yay-*.pkg.tar.zst' ! -name 'yay-debug-*.pkg.tar.zst' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2- || true)"
 
 if [[ -z "$YAY_PKG" ]]; then
-  echo "Could not find built yay package in $YAY_DIR" >&2
+  echo "Could not find built non-debug yay package in $YAY_DIR" >&2
+  echo "Available built packages:" >&2
+  find "$YAY_DIR" -maxdepth 1 -type f -name 'yay-*.pkg.tar.zst' -print >&2 || true
   exit 5
 fi
 
