@@ -62,5 +62,6 @@ hyprland_session_packages:
   - xdg-desktop-portal-hyprland
   - xdg-desktop-portal
   - dbus
+  - uwsm
   - qt5-wayland
   - qt6-wayland

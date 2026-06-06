@@ -41,10 +41,19 @@
     - enable_login_manager | bool
     - login_manager == "sddm"
 
-- name: Create start-hyprland wrapper
+- name: Remove old bad start-hyprland wrapper if this playbook created it
+  become: true
+  ansible.builtin.file:
+    path: /usr/local/bin/start-hyprland
+    state: absent
+  when:
+    - enable_login_manager | bool
+    - login_manager == "sddm"
+
+- name: Create SDDM Hyprland launcher wrapper
   become: true
   ansible.builtin.copy:
-    dest: /usr/local/bin/start-hyprland
+    dest: /usr/local/bin/start-hyprland-sddm
     owner: root
     group: root
     mode: "0755"
@@ -54,11 +63,13 @@
 
       LOG_FILE="/tmp/start-hyprland.log"
       {
-        echo "===== start-hyprland $(date -Is) ====="
+        echo "===== start-hyprland-sddm $(date -Is) ====="
         echo "USER=${USER:-unknown}"
         echo "HOME=${HOME:-unknown}"
         echo "PATH=${PATH:-unknown}"
         echo "Hyprland binary: $(command -v Hyprland || echo missing)"
+        echo "system start-hyprland binary: $(command -v start-hyprland || echo missing)"
+        echo "uwsm binary: $(command -v uwsm || echo missing)"
         echo "dbus-run-session binary: $(command -v dbus-run-session || echo missing)"
       } >> "$LOG_FILE" 2>&1
 
@@ -70,6 +81,23 @@
       export SDL_VIDEODRIVER=wayland
       export CLUTTER_BACKEND=wayland
 
+      # Prefer the official/recommended start-hyprland helper when available.
+      # Do NOT create /usr/local/bin/start-hyprland ourselves, because that shadows
+      # the real helper and causes Hyprland's "launched without start-hyprland" warning.
+      if command -v start-hyprland >/dev/null 2>&1; then
+        echo "Launching with system start-hyprland" >> "$LOG_FILE"
+        exec start-hyprland >> "$LOG_FILE" 2>&1
+      fi
+
+      # Modern Hyprland recommends UWSM-managed sessions when possible.
+      if command -v uwsm >/dev/null 2>&1; then
+        echo "Launching with uwsm start Hyprland" >> "$LOG_FILE"
+        exec uwsm start Hyprland >> "$LOG_FILE" 2>&1
+      fi
+
+      # Last-resort fallback. This may show Hyprland's warning on newer versions,
+      # but keeps the session usable on minimal installs.
+      echo "Launching fallback dbus-run-session Hyprland" >> "$LOG_FILE"
       exec dbus-run-session Hyprland >> "$LOG_FILE" 2>&1
   when:
     - enable_login_manager | bool
@@ -86,7 +114,7 @@
       [Desktop Entry]
       Name=Hyprland
       Comment=An intelligent dynamic tiling Wayland compositor
-      Exec=/usr/local/bin/start-hyprland
+      Exec=/usr/local/bin/start-hyprland-sddm
       Type=Application
       DesktopNames=Hyprland
   when:
@@ -139,7 +167,7 @@
     msg: >-
       SDDM is installed and enabled. Reboot to use the graphical login screen.
       At the login screen, choose Hyprland from the session selector if it is not selected automatically.
-      If the session list is empty, verify /usr/share/wayland-sessions/hyprland.desktop exists.
+      If Hyprland returns to SDDM, check /tmp/start-hyprland.log.
   when:
     - enable_login_manager | bool
     - login_manager == "sddm"
