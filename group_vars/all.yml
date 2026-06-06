@@ -46,9 +46,6 @@ stow_packages:
   - wofi
   - zsh
 
-# Backup location for existing conflicting dotfiles.
-dotfiles_backup_root: "{{ target_home }}/.dotfiles-backup-{{ ansible_date_time.iso8601_basic_short }}"
-
 # Login manager for Hyprland.
 # SDDM gives a normal graphical login screen and supports Wayland sessions.
 enable_login_manager: true

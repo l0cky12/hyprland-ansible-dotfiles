@@ -14,8 +14,6 @@ This Ansible project installs an Arch Linux Hyprland desktop package set, suppor
 - Installs SDDM for a graphical Hyprland login manager
 - Installs GNU Stow
 - Clones or updates the dotfiles repo
-- Checks for existing file conflicts before running Stow
-- Backs up conflicting files to `~/.dotfiles-backup-YYYYMMDDTHHMMSS`
 - Runs Stow as the target user, not root
 
 ## Project Structure
@@ -156,21 +154,9 @@ ansible-playbook -K site.yml
 
 ## File Conflict Behavior
 
-Before running Stow, the playbook checks whether target files already exist in the user's home directory.
+The playbook no longer backs up or moves conflicting dotfiles before Stow.
 
-Example conflict:
-
-```text
-~/.config/hypr/hyprland.conf
-```
-
-If this file exists and is not already a symlink, it is moved to:
-
-```text
-~/.dotfiles-backup-YYYYMMDDTHHMMSS/.config/hypr/hyprland.conf
-```
-
-Then Stow creates the symlink from the dotfiles repo.
+If a target file already exists and blocks Stow, Stow will fail and show the conflict. Remove or move that file manually, then rerun the playbook.
 
 ## Recommended First Run
 
