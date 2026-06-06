@@ -9,7 +9,7 @@ This Ansible project installs an Arch Linux Hyprland desktop package set, suppor
 - Ignores comments and blank lines in `pacpkg.txt`
 - Installs official Arch packages using `pacman`
 - Detects packages unavailable in official repos and treats them as AUR candidates
-- Installs `yay` early on Arch Linux before any AUR package install
+- Installs `yay` early on Arch Linux using `scripts/install-yay.sh` before any AUR package install
 - Installs SDDM for a graphical Hyprland login manager
 - Installs GNU Stow
 - Clones or updates the dotfiles repo
@@ -25,6 +25,8 @@ hyprland-ansible-dotfiles/
 ├── group_vars/
 │   └── all.yml
 ├── pacpkg.txt
+├── scripts/
+│   └── install-yay.sh
 ├── roles/
 │   ├── packages/
 │   │   └── tasks/
@@ -111,15 +113,16 @@ You can also place AUR packages in `pacpkg.txt`. The playbook checks each packag
 The order is:
 
 1. Install core playbook requirements
-2. Check if `yay` exists
-3. If missing, install `base-devel`, `git`, and `go`
-4. Clone yay from AUR as the target user
-5. Build yay as the target user
-6. Install the built yay package with pacman
-7. Install official pacman packages
-8. Install AUR packages with yay
-9. Clone dotfiles
-10. Run Stow
+2. Run `scripts/install-yay.sh` as root through Ansible
+3. The script checks if `yay` exists
+4. If missing, the script installs `base-devel`, `git`, and `go`
+5. The script clones yay from AUR as the target user
+6. The script builds yay as the target user
+7. The script installs the built yay package with pacman
+8. Install official pacman packages
+9. Install AUR packages with yay
+10. Clone dotfiles
+11. Run Stow
 
 ## Run
 
