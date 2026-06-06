@@ -58,6 +58,14 @@
   loop: "{{ stow_dry_run.results }}"
   when: item.stdout | length > 0 or item.stderr | length > 0
 
+- name: Ensure .config directory exists
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.file:
+    path: "{{ target_home }}/.config"
+    state: directory
+    mode: "0755"
+
 - name: Run GNU Stow for configured packages
   become: true
   become_user: "{{ target_user }}"
