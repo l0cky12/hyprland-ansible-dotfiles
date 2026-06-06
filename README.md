@@ -7,6 +7,7 @@ This Ansible project installs an Arch Linux Hyprland desktop package set, suppor
 - Verifies the system is Arch Linux
 - Reads packages from `pacpkg.txt`
 - Installs required bootstrap packages using `pacman`
+- Adds a limited sudoers rule so the target user can run `/usr/bin/pacman` without a password for yay
 - After yay is installed, runs `yay -S --needed --noconfirm $(cat pacpkg.txt)`
 - Optionally runs the same yay install command from `yaypkg.txt`
 - Installs `yay` early on Arch Linux using `scripts/install-yay.sh` before any AUR package install
@@ -137,10 +138,11 @@ The order is:
 5. The script clones yay from AUR as the target user
 6. The script builds yay as the target user
 7. The script installs the built yay package with pacman
-8. Run `yay -S --needed --noconfirm $(cat pacpkg.txt)` as the target user
-9. If `yaypkg.txt` has packages, run `yay -S --needed --noconfirm $(cat yaypkg.txt)` as the target user
-10. Clone dotfiles
-11. Run Stow
+8. Add a limited sudoers rule for passwordless `/usr/bin/pacman`
+9. Run `yay -S --needed --noconfirm $(cat pacpkg.txt)` as the target user
+10. If `yaypkg.txt` has packages, run `yay -S --needed --noconfirm $(cat yaypkg.txt)` as the target user
+11. Clone dotfiles
+12. Run Stow
 
 ## Run
 

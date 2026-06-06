@@ -116,6 +116,17 @@
     - aur_helper == "yay"
     - install_aur_helper_if_missing | bool
 
+- name: Allow target user to run pacman without a sudo password for yay
+  become: true
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/10-{{ target_user }}-pacman-nopasswd"
+    owner: root
+    group: root
+    mode: "0440"
+    content: |
+      {{ target_user }} ALL=(root) NOPASSWD: /usr/bin/pacman
+  validate: "visudo -cf %s"
+
 - name: Install packages from pacpkg.txt with yay
   become: true
   become_user: "{{ target_user }}"
