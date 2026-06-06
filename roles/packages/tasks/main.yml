@@ -125,7 +125,12 @@
     mode: "0440"
     content: |
       {{ target_user }} ALL=(root) NOPASSWD: /usr/bin/pacman
-  validate: "visudo -cf %s"
+
+- name: Validate pacman sudoers rule
+  become: true
+  ansible.builtin.command:
+    cmd: visudo -cf /etc/sudoers.d/10-{{ target_user }}-pacman-nopasswd
+  changed_when: false
 
 - name: Install packages from pacpkg.txt with yay
   become: true
