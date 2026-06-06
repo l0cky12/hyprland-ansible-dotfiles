@@ -125,7 +125,6 @@
     executable: /bin/bash
   register: yay_pacpkg_install_result
   changed_when: "'there is nothing to do' not in ((yay_pacpkg_install_result.stdout | default('')) | lower)"
-  when: requested_packages | length > 0
 
 - name: Install packages from yaypkg.txt with yay
   become: true
