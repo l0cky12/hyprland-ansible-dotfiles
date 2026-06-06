@@ -54,8 +54,10 @@
     state: present
 
 - name: Check whether yay is already installed
-  ansible.builtin.command:
+  ansible.builtin.shell:
     cmd: "command -v yay"
+  args:
+    executable: /bin/bash
   register: yay_initial_check
   changed_when: false
   failed_when: false
@@ -124,8 +126,10 @@
     - yay_initial_check.rc != 0
 
 - name: Verify yay is installed
-  ansible.builtin.command:
+  ansible.builtin.shell:
     cmd: "command -v yay"
+  args:
+    executable: /bin/bash
   register: yay_verify
   changed_when: false
   failed_when: yay_verify.rc != 0
@@ -173,8 +177,10 @@
   when: official_packages | length > 0
 
 - name: Re-check whether AUR helper is installed before AUR package install
-  ansible.builtin.command:
+  ansible.builtin.shell:
     cmd: "command -v {{ aur_helper }}"
+  args:
+    executable: /bin/bash
   register: aur_helper_check_after
   changed_when: false
   failed_when: false
