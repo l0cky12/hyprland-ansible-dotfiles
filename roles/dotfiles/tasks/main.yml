@@ -83,6 +83,14 @@
     - waybar
     - wofi
 
+- name: Ensure Hyprland conf directory exists
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.file:
+    path: "{{ target_home }}/.config/hypr/conf"
+    state: directory
+    mode: "0755"
+
 - name: Run GNU Stow for configured packages
   become: true
   become_user: "{{ target_user }}"
@@ -97,3 +105,13 @@
   ansible.builtin.debug:
     msg: "Stowed package {{ item.item }}"
   loop: "{{ stow_result.results }}"
+
+- name: Ensure Noctalia starts with Hyprland
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.lineinfile:
+    path: "{{ target_home }}/.config/hypr/conf/autostart.conf"
+    line: "exec-once = qs -c noctalia-shell"
+    regexp: "^exec-once\\s*=\\s*qs\\s+-c\\s+noctalia-shell$"
+    create: true
+    mode: "0644"
