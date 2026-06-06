@@ -18,6 +18,7 @@ install_aur_helper_if_missing: true
 aur_build_dependencies:
   - base-devel
   - git
+  - go
 
 # Core packages required by this playbook.
 required_system_packages:

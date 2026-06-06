@@ -53,6 +53,86 @@
     name: "{{ required_system_packages }}"
     state: present
 
+- name: Check whether yay is already installed
+  ansible.builtin.command:
+    cmd: "command -v yay"
+  register: yay_initial_check
+  changed_when: false
+  failed_when: false
+  when:
+    - aur_helper == "yay"
+    - install_aur_helper_if_missing | bool
+
+- name: Install dependencies required to build yay
+  become: true
+  community.general.pacman:
+    name: "{{ aur_build_dependencies }}"
+    state: present
+  when:
+    - aur_helper == "yay"
+    - install_aur_helper_if_missing | bool
+    - yay_initial_check.rc != 0
+
+- name: Ensure yay build cache parent exists
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.file:
+    path: "{{ target_home }}/.cache"
+    state: directory
+    mode: "0755"
+  when:
+    - aur_helper == "yay"
+    - install_aur_helper_if_missing | bool
+    - yay_initial_check.rc != 0
+
+- name: Clone or update yay AUR repository
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.git:
+    repo: "https://aur.archlinux.org/yay.git"
+    dest: "{{ target_home }}/.cache/yay-build"
+    version: master
+    update: true
+  when:
+    - aur_helper == "yay"
+    - install_aur_helper_if_missing | bool
+    - yay_initial_check.rc != 0
+
+- name: Build yay package as target user
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.command:
+    cmd: "makepkg -f --noconfirm"
+    chdir: "{{ target_home }}/.cache/yay-build"
+  when:
+    - aur_helper == "yay"
+    - install_aur_helper_if_missing | bool
+    - yay_initial_check.rc != 0
+
+- name: Install built yay package with pacman
+  become: true
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      pkg="$(ls -t {{ target_home }}/.cache/yay-build/yay-*.pkg.tar.zst | head -n 1)"
+      pacman -U --noconfirm "$pkg"
+  args:
+    executable: /bin/bash
+  when:
+    - aur_helper == "yay"
+    - install_aur_helper_if_missing | bool
+    - yay_initial_check.rc != 0
+
+- name: Verify yay is installed
+  ansible.builtin.command:
+    cmd: "command -v yay"
+  register: yay_verify
+  changed_when: false
+  failed_when: yay_verify.rc != 0
+  when:
+    - aur_helper == "yay"
+    - install_aur_helper_if_missing | bool
+
 - name: Check which requested packages are available in official Arch repos
   ansible.builtin.command:
     cmd: "pacman -Si {{ item }}"
@@ -92,64 +172,7 @@
     state: present
   when: official_packages | length > 0
 
-- name: Check whether AUR helper is installed
-  ansible.builtin.command:
-    cmd: "command -v {{ aur_helper }}"
-  register: aur_helper_check
-  changed_when: false
-  failed_when: false
-
-- name: Install AUR build dependencies before building yay
-  become: true
-  community.general.pacman:
-    name: "{{ aur_build_dependencies }}"
-    state: present
-  when:
-    - aur_packages | length > 0
-    - install_aur_helper_if_missing | bool
-    - aur_helper_check.rc != 0
-
-- name: Ensure yay build cache parent exists
-  become: true
-  become_user: "{{ target_user }}"
-  ansible.builtin.file:
-    path: "{{ target_home }}/.cache"
-    state: directory
-    mode: "0755"
-  when:
-    - aur_helper == "yay"
-    - aur_packages | length > 0
-    - install_aur_helper_if_missing | bool
-    - aur_helper_check.rc != 0
-
-- name: Clone yay AUR repo if yay is missing
-  become: true
-  become_user: "{{ target_user }}"
-  ansible.builtin.git:
-    repo: "https://aur.archlinux.org/yay.git"
-    dest: "{{ target_home }}/.cache/yay-build"
-    version: master
-    update: true
-  when:
-    - aur_helper == "yay"
-    - aur_packages | length > 0
-    - install_aur_helper_if_missing | bool
-    - aur_helper_check.rc != 0
-
-- name: Build and install yay before AUR packages
-  become: true
-  become_user: "{{ target_user }}"
-  ansible.builtin.command:
-    cmd: "makepkg -si --noconfirm"
-    chdir: "{{ target_home }}/.cache/yay-build"
-    creates: "/usr/bin/yay"
-  when:
-    - aur_helper == "yay"
-    - aur_packages | length > 0
-    - install_aur_helper_if_missing | bool
-    - aur_helper_check.rc != 0
-
-- name: Re-check whether AUR helper is installed
+- name: Re-check whether AUR helper is installed before AUR package install
   ansible.builtin.command:
     cmd: "command -v {{ aur_helper }}"
   register: aur_helper_check_after
