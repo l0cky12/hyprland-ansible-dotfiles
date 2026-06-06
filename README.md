@@ -9,6 +9,7 @@ This Ansible project installs an Arch Linux Hyprland desktop package set, suppor
 - Ignores comments and blank lines in `pacpkg.txt`
 - Installs official Arch packages using `pacman`
 - Detects packages unavailable in official repos and treats them as AUR candidates
+- Reads dedicated AUR/yay packages from `yaypkg.txt`
 - Installs `yay` early on Arch Linux using `scripts/install-yay.sh` before any AUR package install
 - Installs SDDM for a graphical Hyprland login manager
 - Installs GNU Stow
@@ -25,6 +26,7 @@ hyprland-ansible-dotfiles/
 ├── group_vars/
 │   └── all.yml
 ├── pacpkg.txt
+├── yaypkg.txt
 ├── scripts/
 │   └── install-yay.sh
 ├── roles/
@@ -70,6 +72,7 @@ target_home: "/home/{{ target_user }}"
 dotfiles_repo: "https://github.com/fhlkfds/dotfiles.git"
 dotfiles_dest: "{{ target_home }}/dotfiles"
 pacman_package_file: "pacpkg.txt"
+yay_package_file: "yaypkg.txt"
 aur_helper: "yay"
 extra_aur_packages: []
 enable_login_manager: true
@@ -98,9 +101,19 @@ stow_packages:
 
 Change `target_user` if your Linux username is not `liam`.
 
-## Add AUR Packages
+## Add AUR/Yay Packages
 
-Preferred method:
+Preferred method: put AUR/yay packages in `yaypkg.txt`, one package per line.
+
+```text
+visual-studio-code-bin
+google-chrome
+brave-bin
+```
+
+Blank lines and comments are ignored.
+
+You can still add AUR packages in `group_vars/all.yml` if you prefer variables:
 
 ```yaml
 extra_aur_packages:
@@ -108,7 +121,7 @@ extra_aur_packages:
   - google-chrome
 ```
 
-You can also place AUR packages in `pacpkg.txt`. The playbook checks each package with `pacman -Si`. If the package is not in the official repos, it becomes an AUR candidate.
+You can also place package names in `pacpkg.txt`. The playbook checks each package with `pacman -Si`. If the package is not in the official repos, it becomes an AUR/yay candidate.
 
 The order is:
 

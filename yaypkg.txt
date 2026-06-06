@@ -1,0 +1,8 @@
+# AUR/yay package list.
+# One package per line.
+# Blank lines and comments are ignored.
+#
+# Examples:
+# visual-studio-code-bin
+# google-chrome
+# brave-bin

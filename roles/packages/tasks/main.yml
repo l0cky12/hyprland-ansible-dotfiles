@@ -38,9 +38,43 @@
     requested_packages: "{{ requested_packages | reject('match', '^\\s*#') | list }}"
      
 
-- name: Show parsed package count
+- name: Show parsed pacman package count
   ansible.builtin.debug:
     msg: "Found {{ requested_packages | length }} packages in {{ pacman_package_file }}."
+
+- name: Check whether yay package list exists
+  ansible.builtin.stat:
+    path: "{{ playbook_dir }}/{{ yay_package_file }}"
+  register: yaypkg_file
+
+- name: Read yay package list
+  ansible.builtin.slurp:
+    src: "{{ playbook_dir }}/{{ yay_package_file }}"
+  register: yaypkg_raw
+  when: yaypkg_file.stat.exists
+
+- name: Parse yay package list and ignore comments/blank lines
+  ansible.builtin.set_fact:
+    yay_packages_from_file: >-
+      {{
+        (yaypkg_raw.content | b64decode)
+        | regex_replace('\r', '')
+        | regex_findall('(?m)^\\s*([^#\\n][^#\\n]*?)\\s*(?:#.*)?$')
+        | map('trim')
+        | reject('equalto', '')
+        | reject('match', '^\\s*#')
+        | list
+      }}
+  when: yaypkg_file.stat.exists
+
+- name: Default yay package list to empty when file is missing
+  ansible.builtin.set_fact:
+    yay_packages_from_file: []
+  when: not yaypkg_file.stat.exists
+
+- name: Show parsed yay package count
+  ansible.builtin.debug:
+    msg: "Found {{ yay_packages_from_file | length }} packages in {{ yay_package_file }}."
 
 - name: Update pacman database
   become: true
@@ -98,9 +132,9 @@
   ansible.builtin.set_fact:
     aur_packages_from_pacpkg: "{{ pacman_repo_check.results | rejectattr('rc', 'equalto', 0) | map(attribute='item') | list }}"
 
-- name: Combine AUR package lists
+- name: Combine AUR/yay package lists
   ansible.builtin.set_fact:
-    aur_packages: "{{ ((aur_packages_from_pacpkg | default([])) + (extra_aur_packages | default([]))) | unique | list }}"
+    aur_packages: "{{ ((aur_packages_from_pacpkg | default([])) + (yay_packages_from_file | default([])) + (extra_aur_packages | default([]))) | unique | list }}"
 
 - name: Remove AUR helper from AUR package install list if present
   ansible.builtin.set_fact:
