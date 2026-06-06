@@ -6,10 +6,9 @@ This Ansible project installs an Arch Linux Hyprland desktop package set, suppor
 
 - Verifies the system is Arch Linux
 - Reads packages from `pacpkg.txt`
-- Ignores comments and blank lines in `pacpkg.txt`
-- Installs official Arch packages using `pacman`
-- Detects packages unavailable in official repos and treats them as AUR candidates
-- Reads dedicated AUR/yay packages from `yaypkg.txt`
+- Installs required bootstrap packages using `pacman`
+- After yay is installed, runs `yay -S --needed --noconfirm $(cat pacpkg.txt)`
+- Optionally runs the same yay install command from `yaypkg.txt`
 - Installs `yay` early on Arch Linux using `scripts/install-yay.sh` before any AUR package install
 - Installs SDDM for a graphical Hyprland login manager
 - Installs GNU Stow
@@ -121,7 +120,13 @@ extra_aur_packages:
   - google-chrome
 ```
 
-You can also place package names in `pacpkg.txt`. The playbook checks each package with `pacman -Si`. If the package is not in the official repos, it becomes an AUR/yay candidate.
+Main package installs now happen through yay from `pacpkg.txt` with:
+
+```bash
+yay -S --needed --noconfirm $(cat pacpkg.txt)
+```
+
+If `yaypkg.txt` contains packages, the playbook also runs the same style command against `yaypkg.txt`.
 
 The order is:
 
@@ -132,8 +137,8 @@ The order is:
 5. The script clones yay from AUR as the target user
 6. The script builds yay as the target user
 7. The script installs the built yay package with pacman
-8. Install official pacman packages
-9. Install AUR packages with yay
+8. Run `yay -S --needed --noconfirm $(cat pacpkg.txt)` as the target user
+9. If `yaypkg.txt` has packages, run `yay -S --needed --noconfirm $(cat yaypkg.txt)` as the target user
 10. Clone dotfiles
 11. Run Stow
 

@@ -116,70 +116,24 @@
     - aur_helper == "yay"
     - install_aur_helper_if_missing | bool
 
-- name: Check which requested packages are available in official Arch repos
-  ansible.builtin.command:
-    cmd: "pacman -Si {{ item }}"
-  loop: "{{ requested_packages }}"
-  register: pacman_repo_check
-  changed_when: false
-  failed_when: false
-
-- name: Build official package list
-  ansible.builtin.set_fact:
-    official_packages: "{{ pacman_repo_check.results | selectattr('rc', 'equalto', 0) | map(attribute='item') | list }}"
-
-- name: Build AUR candidate package list from pacpkg.txt
-  ansible.builtin.set_fact:
-    aur_packages_from_pacpkg: "{{ pacman_repo_check.results | rejectattr('rc', 'equalto', 0) | map(attribute='item') | list }}"
-
-- name: Combine AUR/yay package lists
-  ansible.builtin.set_fact:
-    aur_packages: "{{ ((aur_packages_from_pacpkg | default([])) + (yay_packages_from_file | default([])) + (extra_aur_packages | default([]))) | unique | list }}"
-
-- name: Remove AUR helper from AUR package install list if present
-  ansible.builtin.set_fact:
-    aur_packages: "{{ aur_packages | reject('equalto', aur_helper) | list }}"
-
-- name: Show official packages
-  ansible.builtin.debug:
-    var: official_packages
-
-- name: Show AUR packages
-  ansible.builtin.debug:
-    var: aur_packages
-
-- name: Install official Arch packages from pacpkg.txt
-  become: true
-  community.general.pacman:
-    name: "{{ official_packages }}"
-    state: present
-  when: official_packages | length > 0
-
-- name: Re-check whether AUR helper is installed before AUR package install
-  ansible.builtin.shell:
-    cmd: "command -v {{ aur_helper }}"
-  args:
-    executable: /bin/bash
-  register: aur_helper_check_after
-  changed_when: false
-  failed_when: false
-  when: aur_packages | length > 0
-
-- name: Fail if AUR packages exist but AUR helper is unavailable
-  ansible.builtin.fail:
-    msg: >-
-      AUR packages were detected, but {{ aur_helper }} is not installed.
-      Install {{ aur_helper }} manually or set install_aur_helper_if_missing: true.
-      AUR packages: {{ aur_packages }}
-  when:
-    - aur_packages | length > 0
-    - aur_helper_check_after.rc != 0
-
-- name: Install AUR packages with yay
+- name: Install packages from pacpkg.txt with yay
   become: true
   become_user: "{{ target_user }}"
-  ansible.builtin.command:
-    cmd: "{{ aur_helper }} -S --needed --noconfirm {{ aur_packages | join(' ') }}"
-  register: aur_install_result
-  changed_when: "'there is nothing to do' not in (aur_install_result.stdout | lower)"
-  when: aur_packages | length > 0
+  ansible.builtin.shell:
+    cmd: "{{ aur_helper }} -S --needed --noconfirm $(cat {{ playbook_dir }}/{{ pacman_package_file }})"
+  args:
+    executable: /bin/bash
+  register: yay_pacpkg_install_result
+  changed_when: "'there is nothing to do' not in ((yay_pacpkg_install_result.stdout | default('')) | lower)"
+  when: requested_packages | length > 0
+
+- name: Install packages from yaypkg.txt with yay
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.shell:
+    cmd: "{{ aur_helper }} -S --needed --noconfirm $(cat {{ playbook_dir }}/{{ yay_package_file }})"
+  args:
+    executable: /bin/bash
+  register: yay_yaypkg_install_result
+  changed_when: "'there is nothing to do' not in ((yay_yaypkg_install_result.stdout | default('')) | lower)"
+  when: yay_packages_from_file | length > 0
