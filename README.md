@@ -14,7 +14,7 @@ This Ansible project installs an Arch Linux Hyprland desktop package set, suppor
 - Installs SDDM for a graphical Hyprland login manager
 - Installs GNU Stow
 - Clones or updates the dotfiles repo
-- Ensures `~/.config` and the needed config subfolders exist before running Stow
+- Ensures `~/.config` exists before running Stow
 - Ensures Noctalia starts from Hyprland with `exec-once = qs -c noctalia-shell`
 - Runs Stow as the target user, not root
 
@@ -142,7 +142,7 @@ The order is:
 9. Run `yay -S --needed --noconfirm $(cat pacpkg.txt)` as the target user
 10. If `yaypkg.txt` has packages, run `yay -S --needed --noconfirm $(cat yaypkg.txt)` as the target user
 11. Clone dotfiles
-12. Ensure `~/.config` and config subfolders exist
+12. Ensure `~/.config` exists
 13. Run Stow
 14. Ensure Noctalia autostarts with Hyprland
 

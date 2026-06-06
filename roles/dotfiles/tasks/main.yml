@@ -66,31 +66,6 @@
     state: directory
     mode: "0755"
 
-- name: Create .config subdirectories needed by Stow packages
-  become: true
-  become_user: "{{ target_user }}"
-  ansible.builtin.file:
-    path: "{{ target_home }}/.config/{{ item }}"
-    state: directory
-    mode: "0755"
-  loop:
-    - fastfetch
-    - hypr
-    - hyprlock
-    - noctalia
-    - rofi
-    - swaync
-    - waybar
-    - wofi
-
-- name: Ensure Hyprland conf directory exists
-  become: true
-  become_user: "{{ target_user }}"
-  ansible.builtin.file:
-    path: "{{ target_home }}/.config/hypr/conf"
-    state: directory
-    mode: "0755"
-
 - name: Run GNU Stow for configured packages
   become: true
   become_user: "{{ target_user }}"
