@@ -539,7 +539,6 @@ zsh-autosuggestions
 zsh-completions
 zsh-history-substring-search
 zsh-syntax-highlighting
-
-quickshell
-
 brave-bin
+mpvpaper
+noctalia-shell
