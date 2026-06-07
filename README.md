@@ -15,8 +15,8 @@ This Ansible project installs an Arch Linux Hyprland desktop package set, suppor
 - Installs GNU Stow
 - Clones or updates the dotfiles repo
 - Ensures `~/.config` exists before running Stow
+- Runs `stow -v -t "$HOME" */` from inside the cloned dotfiles folder as the target user
 - Ensures Noctalia starts from Hyprland with `exec-once = qs -c noctalia-shell`
-- Runs Stow as the target user, not root
 
 ## Project Structure
 
@@ -143,7 +143,7 @@ The order is:
 10. If `yaypkg.txt` has packages, run `yay -S --needed --noconfirm $(cat yaypkg.txt)` as the target user
 11. Clone dotfiles
 12. Ensure `~/.config` exists
-13. Run Stow
+13. Run `stow -v -t "$HOME" */` from inside the cloned dotfiles folder
 14. Ensure Noctalia autostarts with Hyprland
 
 ## Run
