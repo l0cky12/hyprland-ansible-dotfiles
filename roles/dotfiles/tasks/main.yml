@@ -4,6 +4,12 @@
     database: passwd
     key: "{{ target_user }}"
 
+- name: Set zsh as the default shell for the target user
+  become: true
+  ansible.builtin.user:
+    name: "{{ target_user }}"
+    shell: /usr/bin/zsh
+
 - name: Ensure dotfiles parent directory exists
   become: true
   ansible.builtin.file:
@@ -47,6 +53,17 @@
 - name: Show Stow result
   ansible.builtin.debug:
     var: stow_result.stdout_lines
+
+- name: Clone Powerlevel10k theme into the oh-my-zsh custom directory
+  become: true
+  become_user: "{{ target_user }}"
+  ansible.builtin.git:
+    repo: https://github.com/romkatv/powerlevel10k.git
+    dest: "{{ target_home }}/.oh-my-zsh/custom/themes/powerlevel10k"
+    depth: 1
+    version: master
+    update: true
+    accept_hostkey: true
 
 - name: Ensure Noctalia starts with Hyprland
   become: true

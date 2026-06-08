@@ -132,6 +132,23 @@
     cmd: visudo -cf /etc/sudoers.d/10-{{ target_user }}-pacman-nopasswd
   changed_when: false
 
+- name: Ensure opendoas is installed
+  become: true
+  community.general.pacman:
+    name: opendoas
+    state: present
+
+- name: Configure doas for the target user
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/doas.conf
+    owner: root
+    group: root
+    mode: "0400"
+    content: |
+      permit persist {{ target_user }} as root
+    validate: "doas -C %s"
+
 - name: Check whether jack2 is installed
   ansible.builtin.command:
     cmd: pacman -Qq jack2
